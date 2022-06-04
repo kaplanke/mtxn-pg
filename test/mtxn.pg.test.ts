@@ -104,11 +104,11 @@ describe("Multiple transaction manager PostgreSQL workflow test...", () => {
             });
 
         // Add control step
-        pgContext.addTask(txnMngr, "SELECT * FROM test_table");
+        const controlTask: Task = pgContext.addTask(txnMngr, "SELECT * FROM test_table");
 
-        const tasks:Task[] = await txnMngr.exec();
+        await txnMngr.exec();
         
-        expect(tasks[2].getResult().rows[0]["name"]).toEqual("Stuart");
+        expect(controlTask.getResult().rows[0]["name"]).toEqual("Stuart");
     });
 
 
