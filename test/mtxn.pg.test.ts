@@ -1,22 +1,21 @@
+import { afterAll, beforeAll, describe, expect, test } from '@jest/globals';
 import log4js from "log4js";
 import { FunctionContext, MultiTxnMngr, Task } from "multiple-transaction-manager";
-import { Pool, QueryResult } from "pg";
-import { describe, test, beforeAll, expect, afterAll } from '@jest/globals';
+import { Pool } from "pg";
 import { PgDBContext } from "../src/index";
 
 log4js.configure({
     appenders: { 'out': { type: 'stdout' } },
     categories: { default: { appenders: ['out'], level: 'debug' } }
 });
-const logger = log4js.getLogger();
 
 const pool = new Pool({
     user: "postgres",
     host: "localhost",
     database: "mtxnmngr",
-    password: "changeme",
+    password: "1q2w3e4r",
     port: 5432
-  });
+});
 
 
 describe("Multiple transaction manager PostgreSQL workflow test...", () => {
@@ -38,10 +37,10 @@ describe("Multiple transaction manager PostgreSQL workflow test...", () => {
 
         // Add third step
         FunctionContext.addTask(txnMngr,
-            (task) => { return new Promise((resolve, reject) => { console.log("All done."); resolve(task); }); },
+            (task) => { return new Promise((resolve, _) => { console.log("All done."); resolve(task); }); },
             null, // optional params
-            (task) => { return new Promise((resolve, reject) => { console.log("Committing..."); resolve(task); }); },
-            (task) => { return new Promise((resolve, reject) => { console.log("Rolling back..."); resolve(task); }); }
+            (task) => { return new Promise((resolve, _) => { console.log("Committing..."); resolve(task); }); },
+            (task) => { return new Promise((resolve, _) => { console.log("Rolling back..."); resolve(task); }); }
         );
 
 
@@ -68,7 +67,11 @@ describe("Multiple transaction manager PostgreSQL workflow test...", () => {
 
         // Add last step -> should not execute
         FunctionContext.addTask(txnMngr,
-            (task) => { return new Promise((resolve, reject) => { console.log("Face the thing that should not be..."); resolve(task); }); },
+            (task) => {
+                return new Promise((resolve, _reject) => {
+                    console.log("Face the thing that should not be..."); resolve(task);
+                });
+            },
             null, // optional params
             (task) => Promise.resolve(task),
             (task) => Promise.resolve(task)
@@ -91,8 +94,8 @@ describe("Multiple transaction manager PostgreSQL workflow test...", () => {
 
         // Add second step
         pgContext.addFunctionTask(txnMngr,
-            (txn, task) => {
-                return new Promise<QueryResult<any> | undefined>((resolve, reject) => {
+            (txn, _task) => {
+                return new Promise<unknown | undefined>((resolve, reject) => {
                     txn.query("INSERT INTO test_table(id, name) VALUES (1, 'Stuart')", [], (err, results) => {
                         if (err) {
                             reject(err);
@@ -107,7 +110,7 @@ describe("Multiple transaction manager PostgreSQL workflow test...", () => {
         const controlTask: Task = pgContext.addTask(txnMngr, "SELECT * FROM test_table");
 
         await txnMngr.exec();
-        
+
         expect(controlTask.getResult().rows[0]["name"]).toEqual("Stuart");
     });
 

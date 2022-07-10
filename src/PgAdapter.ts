@@ -1,13 +1,13 @@
 import log4js from "log4js";
 import { Context, MultiTxnMngr, Task } from "multiple-transaction-manager";
-import { Pool, PoolClient, QueryResult } from "pg";
+import { Pool, PoolClient } from "pg";
 import { v1 } from "uuid";
 
 class PgDBContext implements Context {
 
     connPool: Pool;
     txn: PoolClient | undefined = undefined;
-    done: ((release?: any) => void) | undefined = undefined;
+    done: ((release?: unknown) => void) | undefined = undefined;
     contextId: string;
     logger = log4js.getLogger("MultiTxnMngr");
 
@@ -94,14 +94,14 @@ class PgDBContext implements Context {
         return this.txn;
     }
 
-    addTask(txnMngr: MultiTxnMngr, querySql: string, params?: any | undefined): Task {
+    addTask(txnMngr: MultiTxnMngr, querySql: string, params?: unknown | undefined): Task {
         const task = new PgDBTask(this, querySql, params, undefined);
         txnMngr.addTask(task);
         return task;
     }
 
     addFunctionTask(txnMngr: MultiTxnMngr,
-        execFunc: ((txn: PoolClient, task: Task) => Promise<any | undefined>) | undefined): Task {
+        execFunc: ((txn: PoolClient, task: Task) => Promise<unknown | undefined>) | undefined): Task {
         const task = new PgDBTask(this, "", undefined, execFunc);
         txnMngr.addTask(task);
         return task;
@@ -109,16 +109,16 @@ class PgDBContext implements Context {
 }
 
 class PgDBTask implements Task {
-    params: any;
+    params: unknown;
     context: PgDBContext;
     querySql: string;
-    rs: QueryResult<any> | undefined; // {any, FieldInfo[]}
-    execFunc: ((txn: PoolClient, task: Task) => Promise<any | undefined>) | undefined;
+    rs: unknown | undefined; // {any, FieldInfo[]}
+    execFunc: ((txn: PoolClient, task: Task) => Promise<unknown | undefined>) | undefined;
 
     constructor(context: PgDBContext,
         querySql: string,
-        params: any,
-        execFunc: ((txn: PoolClient, task: Task) => Promise<any | undefined>) | undefined) {
+        params: unknown,
+        execFunc: ((txn: PoolClient, task: Task) => Promise<unknown | undefined>) | undefined) {
         this.context = context;
         this.querySql = querySql;
         if (params)
@@ -141,15 +141,16 @@ class PgDBTask implements Task {
                     rejectTask(err);
                 });
             } else {
-                let params = [];
+                let params;
                 if (this.params) {
                     if (this.params instanceof Function)
                         params = this.params();
                     else
                         params = this.params;
                 }
-                var sql = require('yesql').pg
-                var q = sql(this.querySql)(params);
+                // eslint-disable-next-line @typescript-eslint/no-var-requires
+                const sql = require('yesql').pg
+                const q = sql(this.querySql)(params);
                 this.getContext().getTransaction().query(q.text, q.values, (err, results) => {
                     if (err) {
                         rejectTask(err);
@@ -162,11 +163,11 @@ class PgDBTask implements Task {
         });
     }
 
-    setParams(params: any) {
+    setParams(params: unknown) {
         this.params = params;
     }
 
-    getResult(): any | undefined {
+    getResult(): unknown | undefined {
         return this.rs;
     }
 
