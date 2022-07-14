@@ -13,7 +13,7 @@ const pool = new Pool({
     user: "postgres",
     host: "localhost",
     database: "mtxnmngr",
-    password: "1q2w3e4r",
+    password: "changeme",
     port: 5432
 });
 
@@ -24,19 +24,19 @@ describe("Multiple transaction manager PostgreSQL workflow test...", () => {
 
     test("Success-commit case", async () => {
 
-        // init manager
+        // init manager & context
         const txnMngr: MultiTxnMngr = new MultiTxnMngr();
-
-        const pgContext = new PgDBContext(pool);
+        const pgContext = new PgDBContext(txnMngr, pool);
+        const functionContext = new FunctionContext(txnMngr);
 
         // Add first step
-        pgContext.addTask(txnMngr, "DELETE FROM test_table");
+        pgContext.addTask("DELETE FROM test_table");
 
         // Add second step
-        pgContext.addTask(txnMngr, "INSERT INTO test_table(id, name) VALUES (:id, :name)", { "id": 1, "name": "Dave" });
+        pgContext.addTask("INSERT INTO test_table(id, name) VALUES (:id, :name)", { "id": 1, "name": "Dave" });
 
         // Add third step
-        FunctionContext.addTask(txnMngr,
+        functionContext.addTask(
             (task) => { return new Promise((resolve, _) => { console.log("All done."); resolve(task); }); },
             null, // optional params
             (task) => { return new Promise((resolve, _) => { console.log("Committing..."); resolve(task); }); },
@@ -51,22 +51,22 @@ describe("Multiple transaction manager PostgreSQL workflow test...", () => {
 
     test("Fail-rollback case", async () => {
 
-        // init manager
+        // init manager & context
         const txnMngr: MultiTxnMngr = new MultiTxnMngr();
-
-        const pgContext = new PgDBContext(pool);
+        const pgContext = new PgDBContext(txnMngr, pool);
+        const functionContext = new FunctionContext(txnMngr);
 
         // Add first step
-        pgContext.addTask(txnMngr, "DELETE FROM test_table");
+        pgContext.addTask("DELETE FROM test_table");
 
         // Add second step
-        pgContext.addTask(txnMngr, "INSERT INTO test_table(id, name) VALUES (:id, :name)", { "id": 1, "name": "Dave" });
+        pgContext.addTask("INSERT INTO test_table(id, name) VALUES (:id, :name)", { "id": 1, "name": "Dave" });
 
         // Add third step -> Causes primary key violation
-        pgContext.addTask(txnMngr, "INSERT INTO test_table(id, name) VALUES (:id, :name)", { "id": 1, "name": "Kevin" });
+        pgContext.addTask("INSERT INTO test_table(id, name) VALUES (:id, :name)", { "id": 1, "name": "Kevin" });
 
         // Add last step -> should not execute
-        FunctionContext.addTask(txnMngr,
+        functionContext.addTask(
             (task) => {
                 return new Promise((resolve, _reject) => {
                     console.log("Face the thing that should not be..."); resolve(task);
@@ -77,7 +77,6 @@ describe("Multiple transaction manager PostgreSQL workflow test...", () => {
             (task) => Promise.resolve(task)
         );
 
-
         await expect(txnMngr.exec()).rejects.not.toBeNull();
 
     });
@@ -86,14 +85,13 @@ describe("Multiple transaction manager PostgreSQL workflow test...", () => {
 
         // init manager
         const txnMngr: MultiTxnMngr = new MultiTxnMngr();
-
-        const pgContext = new PgDBContext(pool);
+        const pgContext = new PgDBContext(txnMngr, pool);
 
         // Add first step
-        pgContext.addTask(txnMngr, "DELETE FROM test_table");
+        pgContext.addTask("DELETE FROM test_table");
 
         // Add second step
-        pgContext.addFunctionTask(txnMngr,
+        pgContext.addFunctionTask(
             (txn, _task) => {
                 return new Promise<unknown | undefined>((resolve, reject) => {
                     txn.query("INSERT INTO test_table(id, name) VALUES (1, 'Stuart')", [], (err, results) => {
@@ -107,7 +105,7 @@ describe("Multiple transaction manager PostgreSQL workflow test...", () => {
             });
 
         // Add control step
-        const controlTask: Task = pgContext.addTask(txnMngr, "SELECT * FROM test_table");
+        const controlTask: Task = pgContext.addTask("SELECT * FROM test_table");
 
         await txnMngr.exec();
 
