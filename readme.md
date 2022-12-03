@@ -59,8 +59,8 @@ https://github.com/kaplanke/mtxn-pg/blob/master/test/mtxn.pg.test.ts
     functionContext.addTask(
         (task) => { return new Promise((resolve, _) => { console.log("All done."); resolve(task); }); },
         null, // optional params
-        (task) => { return new Promise((resolve, _) => { console.log("Committing..."); resolve(task); }); },
-        (task) => { return new Promise((resolve, _) => { console.log("Rolling back..."); resolve(task); }); }
+        (task) => { return new Promise((resolve, _) => { console.log("On Txn Commit..."); resolve(task); }); },
+        (task) => { return new Promise((resolve, _) => { console.log("On Txn Rollback..."); resolve(task); }); }
     );
 
 

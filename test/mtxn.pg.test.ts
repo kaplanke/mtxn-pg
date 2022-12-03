@@ -13,7 +13,7 @@ const pool = new Pool({
     user: "postgres",
     host: "localhost",
     database: "mtxnmngr",
-    password: "1q2w3e4r",
+    password: "changeme",
     port: 5432
 });
 
@@ -39,8 +39,8 @@ describe("Multiple transaction manager PostgreSQL workflow test...", () => {
         functionContext.addTask(
             (task) => { return new Promise((resolve, _) => { console.log("All done."); resolve(task); }); },
             null, // optional params
-            (task) => { return new Promise((resolve, _) => { console.log("Committing..."); resolve(task); }); },
-            (task) => { return new Promise((resolve, _) => { console.log("Rolling back..."); resolve(task); }); }
+            (task) => { return new Promise((resolve, _) => { console.log("On Txn Commit..."); resolve(task); }); },
+            (task) => { return new Promise((resolve, _) => { console.log("On Txn Rollback..."); resolve(task); }); }
         );
 
 
