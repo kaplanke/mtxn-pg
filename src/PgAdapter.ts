@@ -1,4 +1,4 @@
-import log4js from "log4js";
+import log4js from "@log4js-node/log4js-api";
 import { Context, MultiTxnMngr, Task } from "multiple-transaction-manager";
 import { Pool, PoolClient } from "pg";
 import { v1 } from "uuid";
@@ -27,9 +27,13 @@ class PgDBContext implements Context {
                         if (err1) {
                             reject(err1);
                         } else {
-                            this.txn = connection;
-                            this.done = done;
-                            resolve(this);
+                            connection.query("BEGIN").then(_=>{
+                                this.txn = connection;
+                                this.done = done;
+                                resolve(this);
+                            }).catch(err=>{
+                                reject(err);
+                            });
                         }
                     });
                 } catch (err) {
